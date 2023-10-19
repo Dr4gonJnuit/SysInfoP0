@@ -22,25 +22,39 @@ void my_free(void *pointer)
 // Fonction my_malloc
 void *my_malloc(size_t size)
 {
+    printf("Start fct Malloc\n");
+
     uint8_t *pointer = MY_HEAP;
+
+    bin(*pointer);
+
     size_t left_s = 64000;
+
+    printf("%d\n", (*pointer & 0x80));
 
     while (left_s >= size)
     {
 
         // Si le bloc est libre
-        if (*pointer & 0x80 == 0)
+        if ((*pointer & 0x80) == 0)
         /* JB : on ne vérifie que le bit de poids fort
          * car avant si on avait "0101 1110" c'était pas libre
          * alors que ça devrait l'être. (1000 0000 = occupé, 0000 0000 = libre)
          */
         {
+            printf("Block Libre\n");
+
             size_t block_size = *pointer & 0x7F; // JB : Il y a ds le byte, à l'exception du bit de poids fort, la taille de l'espace disponible ou utilisé.
+
+            printf("Taille disponible : %d\n", block_size);
 
             // JB : Si la taille est égale à 0 ça veut dire qu'on a rien alloué encore
             if (block_size == 0)
             {
                 *pointer = (uint8_t)size | 0x80;
+                bin(*pointer);
+                printf("uidciuB\n");
+                break;
             }
 
             // Pas sur de ça mais le cours dis oui ? si tu sais donner ton avis
@@ -58,9 +72,12 @@ void *my_malloc(size_t size)
             // JB : block_size = size si on est à la fin ou le reste si on a fragmenté la zone en deux
             pointer += block_size;
             *pointer = (uint8_t)block_size & 0x7F; // JB : on garde la taille si on fragmente, sinon ça reste à zéro
+            break;
         }
         else
         {
+            printf("Block pas Libre\n");
+
             // Passer au bloc suivant
             size_t block_size = (*pointer) & 0x7F;
             pointer += block_size;
@@ -68,4 +85,15 @@ void *my_malloc(size_t size)
         }
     }
     return NULL;
+
+    printf("End fct Malloc\n");
+}
+
+// fct pour afficher les bytes en binaire
+void bin(unsigned n)
+{
+    unsigned i;
+    for (i = 1 << 7; i > 0; i = i / 2)
+        (n & i) ? printf("1") : printf("0");
+    printf("\n");
 }
