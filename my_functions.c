@@ -19,42 +19,64 @@ void my_free(void *pointer)
     *starting_blocks &= 0x7F;
 }
 
-// Fonction my_malloc
 void *my_malloc(size_t size)
 {
-    printf("Start fct Malloc\n");
-
     uint8_t *pointer = MY_HEAP;
-
-    bin(*pointer);
 
     size_t left_s = 64000;
 
-    printf("%d\n", (*pointer & 0x80));
+    size_t stop = 0;
+
+    // On cherche un endroit dans la heap où il y aurait de la place.
+    while (stop < 64000 &&
+           ((*pointer & 0x1) != 0 || (*pointer >> 1) <= size))
+    {
+        stop += (*pointer & 0x7F);
+        pointer = pointer + (*pointer & 0x7F);
+    }
+
+    // Si on dépasse la taille de la heap, on doit retourner NULL.
+    if (stop >= 64000)
+    {
+        return NULL;
+    }
+    
+    // Écrit le block de métadonnée avec la taille (plus le block) et attribue le block. 
+    *pointer = ((uint8_t) (size + 1) << 1) | 0x1;
+
+    return (void *) pointer;
+}
+
+// Fonction my_malloc
+void *my_malloc_old_v(size_t size)
+{
+    uint8_t *pointer = MY_HEAP;
+
+    size_t left_s = 64000;
 
     while (left_s >= size)
     {
 
         // Si le bloc est libre
-        if ((*pointer & 0x80) == 0)
-        /* JB : on ne vérifie que le bit de poids fort
+        if ((*pointer & 0x01) == 0)
+        /* JB : on ne vérifie que le bit de poids faible
          * car avant si on avait "0101 1110" c'était pas libre
-         * alors que ça devrait l'être. (1000 0000 = occupé, 0000 0000 = libre)
+         * alors que ça devrait l'être. (0000 0001 = occupé, 0000 0000 = libre)
          */
         {
-            printf("Block Libre\n");
-
-            size_t block_size = *pointer & 0x7F; // JB : Il y a ds le byte, à l'exception du bit de poids fort, la taille de l'espace disponible ou utilisé.
-
-            printf("Taille disponible : %d\n", block_size);
+            size_t block_size = (*pointer >> 1); // JB : La taille du block est stocké dans les 7 bits plus forts que le bit de poids faible.
 
             // JB : Si la taille est égale à 0 ça veut dire qu'on a rien alloué encore
             if (block_size == 0)
             {
-                *pointer = (uint8_t)size | 0x80;
-                bin(*pointer);
-                printf("uidciuB\n");
-                break;
+                /* JB : On veut stocker la taille + la métadonnée. De plus, il faut qu'on montre que le block est alloué.
+                 * Pour montrer ça, on met dans le bit de poids faible un "1".
+                 */
+                *pointer = ((uint8_t)size + 1) | 0x01;
+                /* JB : j'essaye de retourner un pointeur vers l'endroit juste après les métadonnées.
+                 * C'est là où on stockera les données grâce à la place libérée.
+                 */
+                return (void *)(pointer + 1);
             }
 
             // Pas sur de ça mais le cours dis oui ? si tu sais donner ton avis
@@ -76,8 +98,6 @@ void *my_malloc(size_t size)
         }
         else
         {
-            printf("Block pas Libre\n");
-
             // Passer au bloc suivant
             size_t block_size = (*pointer) & 0x7F;
             pointer += block_size;
@@ -85,8 +105,6 @@ void *my_malloc(size_t size)
         }
     }
     return NULL;
-
-    printf("End fct Malloc\n");
 }
 
 // fct pour afficher les bytes en binaire
