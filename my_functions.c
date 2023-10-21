@@ -14,7 +14,7 @@ void init()
 
 void my_free(void *pointer)
 {
-    // parait trop simple mais bon ça doit être fonctionnel ?
+    // parait trop simple mais bon ça doit être fonctionnel ? Plus vrmt mtn
     uint8_t *starting_blocks = (uint8_t *)pointer - 1;
     // Alors la en gros c'est une porte AND en C
     *starting_blocks &= 0x7F;
@@ -22,31 +22,32 @@ void my_free(void *pointer)
 
 void *my_malloc(size_t size)
 {
+    // On pointe vers le premier élément de la HEAP
     uint8_t *pointer = MY_HEAP;
 
+    // Taille de la HEAP
     size_t left_s = 64000;
 
+    // Taille du block qu'on est en train de lire
+    uint16_t block_size = ((uint16_t)(*pointer << 8) | (uint16_t) * (pointer + 1)) >> 1;
+
     // On cherche un endroit dans la heap où il y aurait de la place.
-    while (left_s > 0 &&
-           ((*pointer & 0x1) != 0 || (*pointer >> 1) <= size))
+    while (left_s > 0 &&                   // On vérifie si on ne dépasse pas la HEAP
+           ((*(pointer + 1) & 0x1) != 0 || // On regarde le deuxième byte (qui indique si le block est est libre ou non)
+            block_size <= size))           // On regarde s'il y a de la place
     {
-        if ((*pointer >> 1) == 0)
-        {
-            *pointer = ((uint8_t)(size + 1) << 1) | 0x1;
-
-            return (void *)pointer;
-        }
-
-        left_s -= (*pointer & 0x7F) >> 1;
-        pointer = pointer + ((*pointer & 0x7F) >> 1);
+        left_s -= block_size;                                                       // On enlève le nombre de byte disponible
+        pointer = pointer + (block_size);                                           // On va à la prochaine métadonnée
+        block_size = ((uint16_t)(*pointer << 8) | (uint16_t) * (pointer + 1)) >> 1; // On reprend la nouvelle taille du nouveau block
     }
 
     // Si on dépasse la taille de la heap, on doit retourner NULL.
-    if (stop >= 64000)
+    if (left_s <= 0)
     {
         return NULL;
     }
 
+    // A REFAIRE
     // Écrit le block de métadonnée avec la taille (plus le block) et attribue le block.
     *pointer = ((uint8_t)(size + 1) << 1) | 0x1;
 
@@ -114,10 +115,10 @@ void *my_malloc_old_v(size_t size)
 }
 
 // fct pour afficher les bytes en binaire
-void bin(unsigned n)
+void bin(unsigned n, int t)
 {
     unsigned i;
-    for (i = 1 << 7; i > 0; i = i / 2)
+    for (i = 1 << t - 1; i > 0; i = i / 2)
         (n & i) ? printf("1") : printf("0");
     printf("\n");
 }
