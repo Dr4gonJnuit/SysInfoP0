@@ -4,8 +4,9 @@ uint8_t MY_HEAP[64000];
 
 void init()
 {
-    // Basics mais on peut s'en passer p'tete
-    for (size_t i = 0; i < 64000; i++)
+    MY_HEAP[0] = 0b11111010;
+    MY_HEAP[1] = 0b00000000; // On pourrait s'en passer avec la boucle en dessous mais c'est bien de se rappeler qu'une taille fait deux bytes.
+    for (size_t i = 2; i < 64000; i++)
     {
         MY_HEAP[i] = 0;
     }
@@ -25,14 +26,19 @@ void *my_malloc(size_t size)
 
     size_t left_s = 64000;
 
-    size_t stop = 0;
-
     // On cherche un endroit dans la heap où il y aurait de la place.
-    while (stop < 64000 &&
+    while (left_s > 0 &&
            ((*pointer & 0x1) != 0 || (*pointer >> 1) <= size))
     {
-        stop += (*pointer & 0x7F);
-        pointer = pointer + (*pointer & 0x7F);
+        if ((*pointer >> 1) == 0)
+        {
+            *pointer = ((uint8_t)(size + 1) << 1) | 0x1;
+
+            return (void *)pointer;
+        }
+
+        left_s -= (*pointer & 0x7F) >> 1;
+        pointer = pointer + ((*pointer & 0x7F) >> 1);
     }
 
     // Si on dépasse la taille de la heap, on doit retourner NULL.
@@ -40,11 +46,11 @@ void *my_malloc(size_t size)
     {
         return NULL;
     }
-    
-    // Écrit le block de métadonnée avec la taille (plus le block) et attribue le block. 
-    *pointer = ((uint8_t) (size + 1) << 1) | 0x1;
 
-    return (void *) pointer;
+    // Écrit le block de métadonnée avec la taille (plus le block) et attribue le block.
+    *pointer = ((uint8_t)(size + 1) << 1) | 0x1;
+
+    return (void *)pointer;
 }
 
 // Fonction my_malloc

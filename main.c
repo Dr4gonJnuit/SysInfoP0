@@ -10,7 +10,7 @@ int main(int argc, char const **argv)
     void *b2 = my_malloc(17);
     void *b3 = my_malloc(13);
 
-    for (size_t i = 0; i < 20; i++)
+    for (size_t i = 0; i < 50; i++)
     {
         bin(MY_HEAP[i]);
     }
