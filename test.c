@@ -2,11 +2,9 @@
 
 int main(int argc, char const *argv[])
 {
-    uint8_t dec = 0b00001110;
+    int p = 4 * sizeof(int);
 
-    dec = (dec >> 1);
-
-    bin(dec);
+    printf("%d\n", p);
 
     return 0;
 }

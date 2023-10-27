@@ -7,6 +7,7 @@ tests:
 	$(CC) -o tests my_functions.c test.c
 
 run:
+	make clean
 	make main
 	./main
 
