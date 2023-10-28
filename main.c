@@ -2,90 +2,33 @@
 
 int main(int argc, char const **argv)
 {
-	printf("Start Init :\n");
-
 	init();
 
 	extern uint8_t MY_HEAP[];
 
-	printf("End Init\n\nResult Init :\n");
-
-	for (size_t i = 0; i < 10; i++)
-	{
-		bin(MY_HEAP[i], 8);
-	}
-
-	printf("\nStart First Malloc :\n");
-
 	void *b1 = my_malloc(1);
-
-	printf("End First Malloc\n\nResult First Malloc :\n");
-
-	for (size_t i = 0; i < 10; i++)
-	{
-		bin(MY_HEAP[i], 8);
-	}
-
-	printf("\nStart Second Malloc :\n");
-
 	void *b2 = my_malloc(17);
-
-	printf("End Second Malloc\n\nResult Second Malloc :\n");
-
-	for (size_t i = 0; i < 25; i++)
-	{
-		bin(MY_HEAP[i], 8);
-	}
-
-	printf("\nStart Third Malloc :\n");
-
 	void *b3 = my_malloc(13);
-
-	printf("End Third Malloc\n\nResult Third Malloc :\n");
-
-	for (size_t i = 0; i < 50; i++)
-	{
-		bin(MY_HEAP[i], 8);
-	}
-
-	printf("\nStart Fourth Malloc :\n");
-
 	void *b4 = my_malloc(8);
-
-	printf("End Fourth Malloc\n\nResult Fourth Malloc :\n");
-
-	for (size_t i = 0; i < 60; i++)
-	{
-		bin(MY_HEAP[i], 8);
-	}
-
-	printf("\nStart Fourth Malloc :\n");
-
 	void *b5 = my_malloc(63900);
-
-	printf("End Fifth Malloc\n");//\nResult Fifth Malloc :\n");
-	/*
-	for (size_t i = 0; i < 60; i++)
-	{
-		bin(MY_HEAP[i], 8);
-	}
-	*/
-
-	printf("\nStart Sixth Malloc :\n");
-
 	void *b6 = my_malloc(60);
 
-	printf("End Sixth Malloc\n");//\nResult Sixth Malloc :\n");
-	/*
-	for (size_t i = 0; i < 60; i++)
+	printf("Start Free Third Malloc :\n");
+	my_free(b3);
+	printf("End Free of the Third Malloc\n\nResult :\n");
+
+	void *b3_2 = my_malloc(5);
+	my_free(b3_2);
+
+	for (size_t i = 0; i < (1+3+17+3+13+3+8+2+5); i++)
 	{
+		if (i == (1+3) || i == (1+3+17+3) || i == (1+3+17+3+13+3) || i==(1+3+17+3+13+3+8+2))
+		{
+			printf("\n");
+		}
+		
 		bin(MY_HEAP[i], 8);
 	}
-	*/
-
-	/*
-	my_free(b3);
-	*/
 
 	return 0;
 }

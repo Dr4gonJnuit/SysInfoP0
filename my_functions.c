@@ -14,16 +14,40 @@ void init()
 
 void my_free(void *pointer)
 {
-    // parait trop simple mais bon ça doit être fonctionnel ? Plus vrmt mtn
-    uint8_t *starting_blocks = (uint8_t *)pointer - 1;
-    // Alors la en gros c'est une porte AND en C
-    *starting_blocks &= 0x7F;
+    /**********************
+     * Libération du bloc *
+     **********************/
+
+    // Il y a deux blocs de métadonnée, seul le deuxième est important pour indiquer si le bloc est libre ou non.
+    uint8_t *meta_block = (uint8_t *)(pointer - 1);
+    // On met le bit de poids faible à zéro pour indiquer que le bloc est mtn libre.
+    *meta_block &= ~0x1;
+
+    /*************************************************************
+     * Vérification s'il n'y a pas un autre bloc libre plus loin *
+     *************************************************************/
+
+    // On prend la taille du bloc et comme on l'a libéré, on sait que le bit de poids faible est égal à zéro.
+    uint16_t block_free_size = (uint16_t)(*(meta_block - 1) << 8) | (uint16_t) * (meta_block);
+
+    // Pointer pointe là où on veux écrire les données, pas le bloc de métadonnée.
+    // En fesant -2 on obtient le début du bloc de métadonnée, là où se trouve les bits de poids fort.
+    uint8_t *block_next = (uint8_t *)(pointer + block_free_size - 2);
+    if ((*(block_next + 1) & 0x1) == 0)
+    {
+        /********************
+         * Fusion des blocs *
+         ********************/
+        uint16_t block_next_size = (uint16_t)(*(block_next) << 8) | (uint16_t) * (block_next + 1);
+        uint16_t combined_free_block = block_free_size + block_next_size;
+
+        *(meta_block - 1) = (uint8_t)(combined_free_block >> 8);
+        *meta_block = (uint8_t)combined_free_block;
+    }
 }
 
 void *my_malloc(size_t size)
 {
-    printf("\nStart fct malloc :\n\n");
-
     // On pointe vers le premier élément de la HEAP
     uint8_t *pointer = MY_HEAP;
 
@@ -48,8 +72,6 @@ void *my_malloc(size_t size)
         block_insert_size = size + 2; // On insert le bloc de métadonnée (2 bytes)
     }
 
-    printf("Première taille lue : %d\nTaille initiale sans les blocs de métadonnées : %ld\nTaille qu'on voudra insérer : %d\n", block_read_size, size, block_insert_size);
-
     // On cherche un endroit dans la heap où il y aurait de la place.
     int i = 2;
     while (left_s > 0 &&                           // On vérifie si on ne dépasse pas la HEAP
@@ -59,19 +81,12 @@ void *my_malloc(size_t size)
         left_s -= block_read_size;                                                         // On enlève le nombre de byte disponible
         pointer = pointer + (block_read_size);                                             // On va à la prochaine métadonnée
         block_read_size = ((uint16_t)(*pointer << 8) | (uint16_t) * (pointer + 1)) & ~0x1; // On reprend la taille du nouveau bloc
-        printf("%dième taille lue : %d\n", i, block_read_size);
         i++;
-        if (i == 10)
-        {
-            break;
-        }
-        }
+    }
 
     // Si on dépasse la taille de la heap, on doit retourner NULL.
     if (left_s <= 0)
     {
-        printf("\nEnd fct malloc\n");
-        printf("Aucune place disponible\n\n");
         return NULL;
     }
 
@@ -86,8 +101,6 @@ void *my_malloc(size_t size)
 
     uint16_t new_free_block = block_read_size - block_insert_size;
 
-    printf("Taille du trou : %d\nTaille du bloc : %d\nNouvelle taille du trou : %d\n", block_read_size, block_insert_size, new_free_block);
-
     // On insert les 8 bits de poids fort dans le premier byte et les 8 bits de poids faible dans le second byte
     *pointer = (uint8_t)(new_block >> 8);
     *(pointer + 1) = (int8_t)new_block;
@@ -98,8 +111,6 @@ void *my_malloc(size_t size)
         *(pointer + block_insert_size) = (uint8_t)((new_free_block) >> 8);
         *(pointer + block_insert_size + 1) = (uint8_t)(new_free_block & ~0x1);
     }
-
-    printf("\nEnd fct malloc\n\n");
 
     return (void *)pointer + 2; // On ne veut pas renvoyer un pointeur vers la métadonnée mais vers le premier byte ou on peut écrire.
 }
